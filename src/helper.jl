@@ -193,7 +193,7 @@ function krontv(A::Matrix{T1},B::Matrix{T2},M::Matrix{T3}) where {T1<:Number,T2<
   m,n=size(A);
   p,q=size(B);
   @assert(size(M,1)==q*n, "Dimensions mismatch.");
-  Mprod=zeros(m*p,size(M,2))
+  Mprod=zeros(promote_type(T1,T2,T3),m*p,size(M,2))
   for j=1:size(M,2)
     Mprod[:,j]=krontv(A,B,M[:,j])
   end
@@ -225,7 +225,7 @@ function krtv(A::Matrix{T1},B::Matrix{T2},M::Matrix{T3}) where {T1<:Number,T2<:N
   m,n=size(A);
   p=size(B,1);
   @assert(size(M,1)==n, "Dimensions mismatch.");
-  Mprod=zeros(m*p,size(M,2))
+  Mprod=zeros(promote_type(T1,T2,T3),m*p,size(M,2))
   for j=1:size(M,2)
     Mprod[:,j]=krtv(A,B,M[:,j])
   end
@@ -257,7 +257,7 @@ function tkrtv(A::Matrix{T1},B::Matrix{T2},M::Matrix{T3}) where {T1<:Number,T2<:
   m,n=size(A);
   p=size(B,2);
   @assert(size(M,1)==n*p, "Dimensions mismatch.");
-  Mprod=zeros(m,size(M,2))
+  Mprod=zeros(promote_type(T1,T2,T3),m,size(M,2))
   for j=1:size(M,2)
     Mprod[:,j]=tkrtv(A,B,M[:,j])
   end
@@ -311,16 +311,16 @@ function lanczos_tridiag(A::Matrix{N};tol=1e-8,maxit=1000,reqrank=0,p=10) where 
   if reqrank != 0
       K=min(reqrank+p,K);
   end
-  isreal(A) ? α=zeros(K) : α=zeros(Complex,K)
-  β=zeros(K)
-  v=randn(m);
+  α=zeros(real(N),K)
+  β=zeros(real(N),K)
+  v=randn(N,m);
   q=v/norm(v);
-  Q=zeros(m,1)
+  Q=zeros(N,m,1)
   Q[:,1]=q;
   k=0; #needed if stopping criterion is met
   for k=1:K
     r=A*(A'*Q[:,k])
-    α[k]=dot(r,Q[:,k])
+    α[k]=real(dot(r,Q[:,k]))
     r=r-α[k]*Q[:,k] #without orthogonalization: r=r-α[k]*Q[:,k]-β[k-1]*Q[:,k-1]
     [r=r-Q*(Q'*r) for i=1:3]
     β[k]=norm(r)
@@ -332,9 +332,9 @@ function lanczos_tridiag(A::Matrix{N};tol=1e-8,maxit=1000,reqrank=0,p=10) where 
       Q=[Q r/β[k]]
     end
   end
-  isreal(α) ? T=SymTridiagonal(α[1:K], β[1:K-1]) : T=Hermitian(Matrix(SymTridiagonal(real(α[1:K]), β[1:K-1]) +im*Diagonal(imag(α[1:K]))))
+  T=SymTridiagonal(α[1:K], β[1:K-1])
   Q,T
-  end
+end
 
 function randrange(A::Matrix{T},gram=true,t='t';tol=1e-8,maxit=1000,reqrank=0,r=10,p=10) where T<:Number
   m,n=size(A)
@@ -360,17 +360,17 @@ function randrange(A::Matrix{T},gram=true,t='t';tol=1e-8,maxit=1000,reqrank=0,r=
       Y=A'*randn(m,r)
       if gram
         Y=A*Y
-        Q=zeros(m,0)
+        Q=zeros(T,m,0)
       else
-        Q=zeros(n,0)
+        Q=zeros(T,n,0)
       end
     elseif t=='n'
       Y=A*randn(n,r)
       if gram
         Y=A'*Y
-        Q=zeros(n,0)
+        Q=zeros(T,n,0)
       else
-        Q=zeros(m,0)
+        Q=zeros(T,m,0)
       end
     end
 

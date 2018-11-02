@@ -8,7 +8,7 @@ Create block diagonal tensor where tensors X and Y are block elements. If X and 
 """
 function blockdiag(X1::Array{T1,N},X2::Array{T2,N}) where {T1<:Number, T2<:Number, N}
   sz=tuple([size(X1)...]+[size(X2)...]...)
-  Xd=zeros(sz)
+  Xd=zeros(promote_type(T1, T2), sz)
   R1=CartesianIndices(size(X1))
   I1=last(R1)
   R2=CartesianIndices(size(X2))
@@ -84,7 +84,7 @@ function cp_als(X::Array{T},R::Integer;init="rand",tol=1e-4,maxit=1000,dimorder=
     else
         error("Initialization method wrong.")
     end
-    G = zeros(R,R,N); #initalize gramians
+    G = zeros(T,R,R,N); #initalize gramians
     for n in dimorder[2:end]
       if !isempty(fmat[n])
         G[:,:,n]=fmat[n]'*fmat[n]
@@ -131,7 +131,7 @@ Create a diagonal tensor for a given vector of diagonal elements. Generalization
 function diagt(v::Vector{T}) where {T<:Number}
   N=length(v)
   sz=tuple(repeat([N],N,1)[:]...)
-  D=zeros(sz)
+  D=zeros(T, sz)
   R=CartesianIndices(sz)
   In=first(R)
   for i=1:N
@@ -144,7 +144,7 @@ end
 function diagt(v::Vector{T},dims::Vector{D}) where {T<:Number,D<:Integer}
   Dt=diagt(v)
   sz=dims-[size(Dt)...]
-  blockdiag(Dt,zeros(sz...))
+  blockdiag(Dt,zeros(T,sz...))
 end
 
 """
@@ -325,9 +325,9 @@ function mkrontv(X1::Array{T1,N},X2::Array{T2,N},M::Matrix{T3},n::Integer,t='n')
   kronsize=([I1...].*[I2...]);
   ind=setdiff(1:N,n) #all indices but n
   if t=='n'
-    Mprod=zeros(kronsize[n],size(M,2))
+    Mprod=zeros(promote_type(T1,T2,T3),kronsize[n],size(M,2))
   else
-    Mprod=zeros(prod(kronsize[ind]),size(M,2))
+    Mprod=zeros(promote_type(T1,T2,T3),prod(kronsize[ind]),size(M,2))
   end
   for i=1:size(M,2)
     Mprod[:,i]=mkrontv(X1,X2,M[:,i],n,t);
@@ -382,7 +382,7 @@ Identity tensor of a given dimension. Generalization of eye.
 """
 function neye(dims::Vector{D}) where {D<:Integer}
   dims=tuple(dims...)
-  A=zeros(dims)
+  A=zeros(dims) # always gives Array{Float64}
   R=CartesianIndices(dims)
   Ifirst=first(R)
   Iend=last(R)
@@ -557,7 +557,7 @@ function tkron(X1::Array{T1,N},X2::Array{T2,N}) where {T1<:Number,T2<:Number,N}
   end
   s1=size(X1)
   s2=size(X2)
-  Xk=zeros(s1.*s2)
+  Xk=zeros(promote_type(T1,T2),s1.*s2)
   R1=CartesianIndices(s1)
   R2=CartesianIndices(s2)
   Il=last(R2)
